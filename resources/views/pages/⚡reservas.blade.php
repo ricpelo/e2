@@ -34,16 +34,17 @@ new class extends Component
         $lunes = now()->startOfWeek();
         $viernes = $lunes->copy()->addDays(4)->setTime(23, 59, 59);
 
-        Reserva::where('pista_id', $this->pista_id)
+        $reservas = Reserva::where('pista_id', $this->pista_id)
             ->whereBetween('fecha_hora', [$lunes, $viernes])
-            ->get()
-            ->each(function ($reserva) use (&$tablero) {
-                if ($reserva->user_id == Auth::id()) {
-                    $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = $reserva->id;
-                } else {
-                    $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = 'O';
-                }
-            });
+            ->get();
+
+        foreach ($reservas as $reserva) {
+            if ($reserva->user_id == Auth::id()) {
+                $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = $reserva->id;
+            } else {
+                $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = 'O';
+            }
+        }
 
         // for ($h = 10; $h < 20; $h++) {
         //     for ($d = 0; $d < 5; $d++) {
