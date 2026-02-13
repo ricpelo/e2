@@ -32,24 +32,36 @@ new class extends Component
         $tablero = [];
 
         $lunes = now()->startOfWeek();
+        $viernes = $lunes->copy()->addDays(4)->setTime(23, 59, 59);
 
-        for ($h = 10; $h < 20; $h++) {
-            for ($d = 0; $d < 5; $d++) {
-                $fecha = $lunes->copy()->addDays($d)->addHours($h)->format('Y-m-d H:i');
-                $reserva = Reserva::where('pista_id', $this->pista_id)
-                    ->where('fecha_hora', $fecha)
-                    ->first();
-                if ($reserva) {
-                    if ($reserva->user_id == Auth::id()) {
-                        $tablero[$fecha] = $reserva->id;
-                    } else {
-                        $tablero[$fecha] = 'O';
-                    }
+        Reserva::where('pista_id', $this->pista_id)
+            ->whereBetween('fecha_hora', [$lunes, $viernes])
+            ->get()
+            ->each(function ($reserva) use (&$tablero) {
+                if ($reserva->user_id == Auth::id()) {
+                    $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = $reserva->id;
                 } else {
-                    $tablero[$fecha] = null;
+                    $tablero[$reserva->fecha_hora->format('Y-m-d H:i')] = 'O';
                 }
-            }
-        }
+            });
+
+        // for ($h = 10; $h < 20; $h++) {
+        //     for ($d = 0; $d < 5; $d++) {
+        //         $fecha = $lunes->copy()->addDays($d)->addHours($h)->format('Y-m-d H:i');
+        //         $reserva = Reserva::where('pista_id', $this->pista_id)
+        //             ->where('fecha_hora', $fecha)
+        //             ->first();
+        //         if ($reserva) {
+        //             if ($reserva->user_id == Auth::id()) {
+        //                 $tablero[$fecha] = $reserva->id;
+        //             } else {
+        //                 $tablero[$fecha] = 'O';
+        //             }
+        //         } else {
+        //             $tablero[$fecha] = null;
+        //         }
+        //     }
+        // }
 
         return $tablero;
     }
@@ -145,21 +157,21 @@ new class extends Component
                         $fechaStr = $fecha->format('Y-m-d H:i');
                         @endphp
                         <td>
-                            @if ($this->tablero[$fechaStr] === 'O')
-                                <span class="badge badge-error">Ocupado</span>
-                            @elseif ($this->tablero[$fechaStr] !== null)
-                                <button
-                                    class="btn btn-xs btn-warning"
-                                    wire:click="anularReserva({{ $this->tablero[$fechaStr] }})"
-                                >
-                                    Anular
-                                </button>
-                            @else
+                            @if (!isset($this->tablero[$fechaStr]))
                                 <button
                                     class="btn btn-xs btn-success"
                                     wire:click="reservar('{{ $fechaStr }}')"
                                 >
                                     Reservar
+                                </button>
+                            @elseif ($this->tablero[$fechaStr] === 'O')
+                                <span class="badge badge-error">Ocupado</span>
+                            @else
+                                <button
+                                    class="btn btn-xs btn-warning"
+                                    wire:click="anularReserva({{ $this->tablero[$fechaStr] }})"
+                                >
+                                    Anular
                                 </button>
                             @endif
                         </td>
